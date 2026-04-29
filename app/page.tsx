@@ -1,9 +1,31 @@
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
-  const cookieStore = cookies();
-  if (cookieStore.get("access_token")) redirect("/dashboard");
+  const router = useRouter();
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const accessToken = params.get("access_token");
+    const refreshToken = params.get("refresh_token");
+
+    if (accessToken && refreshToken) {
+      // Forward tokens to the route handler that sets HTTP-only cookies
+      router.replace(
+        `/auth/callback?access_token=${encodeURIComponent(accessToken)}&refresh_token=${encodeURIComponent(refreshToken)}`
+      );
+      return;
+    }
+
+    // Already logged in? Go straight to dashboard
+    fetch("/api/me")
+      .then((res) => {
+        if (res.ok) router.replace("/dashboard");
+      })
+      .catch(() => {});
+  }, [router]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-900">
